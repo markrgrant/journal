@@ -1,0 +1,16 @@
+Name:           journal
+Version:        0.0
+Synopsis:       A daily journal management utility
+Description:    A command-line tool for creating new daily journal
+                entries and editing old entries. Each day's journal
+                is stored its own file and edited with the preferred
+                text editor and stored in a common folder.
+License:        GPL
+License-file:   LICENSE
+Author:         Mark Grant
+Maintainer:     Mark Grant <markrgrant@yahoo.com>
+Build-Depends:  base, text, split, filepath, process, directory, time
+Build-Type:     Simple
+
+Executable:     journal
+Main-is:        Journal.hs
