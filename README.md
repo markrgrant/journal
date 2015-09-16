@@ -6,7 +6,7 @@ A simple utility for creating and editing journal entries
 
     $ cabal sandbox init
     $ cabal init
-    $ cabal install
+    $ cabal install --enable-tests
 
 # Configuration
 
@@ -36,3 +36,8 @@ View or Edit a different day's journal entry in yy-mm-dd format:
 
     $ journal 15-12-01
 
+# Testing
+
+To run the tests:
+
+    % cabal test
