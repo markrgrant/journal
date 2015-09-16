@@ -1,5 +1,7 @@
 *.o
 *.hi
+*.tix
+*.html
 dist/*
 .cabal-sandbox
 cabal.sandbox.config
