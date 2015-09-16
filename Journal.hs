@@ -28,7 +28,7 @@ main = do
                   if exists
                       then editFile dir editor filename
                       else error "file not found"
-        _ -> error "Usage: "
+        _ -> error "Usage: journal [filename]"
 
 getConfigs :: IO (FilePath, Editor)
 getConfigs = do
