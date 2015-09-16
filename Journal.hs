@@ -12,16 +12,25 @@ import Data.List.Split
 import Data.List (intersperse)
 import qualified Data.Text as T
 
+
 type Editor = String
 type FileName = String
 type Suffix = String
+type Config = (FilePath, Editor, Suffix)
+
+
+defaultDir = "."
+defaultEditor = "vi"
+defaultSuffix = ".txt"
+
 
 main :: IO ExitCode
 main = do
-    (dir, editor, suffix) <- getConfigs
-    args <- getArgs
+    args      <- getArgs
     timestamp <- getCurrentTime
-    let filename = todaysFilename timestamp suffix
+    configs   <- readConfigs
+    let (dir, editor, suffix) = parseConfigs configs
+        filename = todaysFilename timestamp suffix
     case args of
         [] -> do 
                   exists <- todaysFileExists dir filename
@@ -35,43 +44,55 @@ main = do
                       else error "file not found"
         _ -> error "Usage: journal [filename]"
 
-getConfigs :: IO (FilePath, Editor, Suffix)
-getConfigs = do
-    handle <- openConfigFile
-    contents <- hGetContents handle
-    let
-        configs = pairsToTuples . filter (\x -> length x == 2) $ map (splitOn "=") (lines contents)
-        dir = case maybeDir of
-            Nothing -> "."
-            Just dir -> dir
-            where maybeDir = lookup "dir" configs
-        editor = case maybeEditor of
-            Nothing -> error "vi"
-            Just editor -> editor
-            where maybeEditor = lookup "editor" configs
-        suffix = case maybeSuffix of
-            Nothing -> ""
-            Just suffix -> suffix
-            where maybeSuffix = lookup "suffix" configs
-    return (dir, editor, suffix)
+
+readConfigs :: IO String
+readConfigs = do
+    file <- openConfigFile
+    fileContents <- hGetContents file
+    return fileContents
+
 
 openConfigFile :: IO Handle
 openConfigFile = do
     homedir <- getHomeDirectory
     openFile (homedir ++ "/.journalrc") ReadMode
 
+
+parseConfigs :: String -> Config
+parseConfigs contents = let
+    configs = pairsToTuples . filter (\x -> length x == 2) $ map (splitOn "=") (lines contents)
+    dir =    case maybeDir of
+                 Nothing      -> defaultDir
+                 Just dir     -> dir
+             where maybeDir = lookup "dir" configs
+    editor = case maybeEditor of
+                 Nothing      -> defaultEditor
+                 Just editor  -> editor
+             where maybeEditor = lookup "editor" configs
+    suffix = case maybeSuffix of
+                 Nothing      -> defaultSuffix
+                 Just suffix  -> suffix
+             where maybeSuffix = lookup "suffix" configs
+    in (dir, editor, suffix)
+    where pairsToTuples :: [[a]] -> [(a,a)]
+          pairsToTuples lst = map (\x -> (x!!0,x!!1)) lst
+
+
 todaysFileExists :: FilePath -> FileName -> IO Bool
 todaysFileExists dir filename = do
     doesFileExist (dir ++ pathSeparator:filename)
 
+
 editTodaysFile :: FilePath -> FileName -> Editor -> IO ExitCode
 editTodaysFile dir filename editor = do
     system (editor ++ " " ++ dir ++ pathSeparator:filename)
+
     
 createAndEditTodaysFile :: FilePath -> FileName -> Editor -> IO ExitCode
 createAndEditTodaysFile dir filename editor = do
     handle <- openFile (dir ++ pathSeparator:filename) WriteMode
     system (editor ++ " " ++ dir ++ pathSeparator:filename) 
+
 
 editFile :: FilePath -> FileName -> Editor -> IO ExitCode
 editFile dir filename editor = do
@@ -83,15 +104,6 @@ todaysFilename :: UTCTime -> String -> FileName
 todaysFilename timestamp suffix =
     (concat $ intersperse "-" [show (yr tuple), show (mo tuple), show (day tuple)]) ++ suffix
     where tuple = toGregorian $ utctDay timestamp
-
-day :: (Integer, Int, Int) -> Int
-day (y,m,d) = d
-
-mo :: (Integer, Int, Int) -> Int
-mo (y,m,d) = m
-
-yr :: (Integer, Int, Int) -> Integer
-yr (y,m,d) = y
-
-pairsToTuples :: [[a]] -> [(a,a)]
-pairsToTuples lst = map (\x -> (x!!0,x!!1)) lst
+          day (y,m,d) = d
+          mo  (y,m,d) = m
+          yr  (y,m,d) = y
