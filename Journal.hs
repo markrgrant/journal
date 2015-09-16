@@ -73,14 +73,6 @@ editFile dir editor filename = do
     handle <- openFile (dir ++ pathSeparator:filename) ReadMode
     system (editor ++ " " ++ dir ++ pathSeparator:filename) 
 
--- create a new file with name "yy-mm-dd.txt" in the current directory
-createFile :: IO Handle
-createFile = do
-    filename <- todaysFilename
-    handle <- openFile filename WriteMode
-    hClose handle
-    return handle
-
 -- return a filename of format "yy-mm-dd.txt" where yy-mm-dd are from today's date
 todaysFilename :: IO String
 todaysFilename = do
