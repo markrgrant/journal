@@ -1,6 +1,8 @@
 -- A command-line tool for managing a simple journal
 
 import Data.Time.Clock
+import Data.Maybe (fromMaybe)
+import Data.List (intercalate)
 import System.Environment
 import Data.Time.Calendar
 import System.Directory
@@ -46,10 +48,7 @@ main = do
 
 
 readConfigs :: IO String
-readConfigs = do
-    file <- openConfigFile
-    fileContents <- hGetContents file
-    return fileContents
+readConfigs = openConfigFile >>= hGetContents
 
 
 openConfigFile :: IO Handle
@@ -61,48 +60,39 @@ openConfigFile = do
 parseConfigs :: String -> Config
 parseConfigs contents = let
     configs = pairsToTuples . filter (\x -> length x == 2) $ map (splitOn "=") (lines contents)
-    dir =    case maybeDir of
-                 Nothing      -> defaultDir
-                 Just dir     -> dir
-             where maybeDir = lookup "dir" configs
-    editor = case maybeEditor of
-                 Nothing      -> defaultEditor
-                 Just editor  -> editor
-             where maybeEditor = lookup "editor" configs
-    suffix = case maybeSuffix of
-                 Nothing      -> defaultSuffix
-                 Just suffix  -> suffix
-             where maybeSuffix = lookup "suffix" configs
+    dir = fromMaybe defaultDir $ lookup "dir" configs
+    editor = fromMaybe defaultEditor $ lookup "editor" configs
+    suffix = fromMaybe defaultSuffix $ lookup "suffix" configs
     in (dir, editor, suffix)
     where pairsToTuples :: [[a]] -> [(a,a)]
-          pairsToTuples lst = map (\x -> (x!!0,x!!1)) lst
+          pairsToTuples = map (\x -> (head x, x!!1))
 
 
 todaysFileExists :: FilePath -> FileName -> IO Bool
-todaysFileExists dir filename = do
-    doesFileExist (dir ++ pathSeparator:filename)
+todaysFileExists dir filename = 
+    doesFileExist $ dir ++ pathSeparator:filename
 
 
 editTodaysFile :: FilePath -> FileName -> Editor -> IO ExitCode
-editTodaysFile dir filename editor = do
-    system (editor ++ " " ++ dir ++ pathSeparator:filename)
+editTodaysFile dir filename editor =
+    system $ editor ++ " " ++ dir ++ pathSeparator:filename
 
     
 createAndEditTodaysFile :: FilePath -> FileName -> Editor -> IO ExitCode
 createAndEditTodaysFile dir filename editor = do
     handle <- openFile (dir ++ pathSeparator:filename) WriteMode
-    system (editor ++ " " ++ dir ++ pathSeparator:filename) 
+    system $ editor ++ " " ++ dir ++ pathSeparator:filename
 
 
 editFile :: FilePath -> FileName -> Editor -> IO ExitCode
 editFile dir filename editor = do
     handle <- openFile (dir ++ pathSeparator:filename) ReadMode
-    system (editor ++ " " ++ dir ++ pathSeparator:filename) 
+    system $ editor ++ " " ++ dir ++ pathSeparator:filename
 
 -- create a filename of format "yy-mm-dd.txt" from the current UTC time
 todaysFilename :: UTCTime -> String -> FileName
 todaysFilename timestamp suffix =
-    (concat $ intersperse "-" [show (yr tuple), show (mo tuple), show (day tuple)]) ++ suffix
+    intercalate "-" [show (yr tuple), show (mo tuple), show (day tuple)] ++ suffix
     where tuple = toGregorian $ utctDay timestamp
           day (y,m,d) = d
           mo  (y,m,d) = m
